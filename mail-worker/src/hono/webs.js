@@ -4,6 +4,7 @@ import '../security/security'
 import '../api/email-api';
 import '../api/user-api';
 import '../api/login-api';
+import '../api/company-login-api';
 import '../api/setting-api';
 import '../api/account-api';
 import '../api/star-api';

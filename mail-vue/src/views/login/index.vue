@@ -14,6 +14,7 @@
         <span class="form-desc" v-if="show === 'login'">{{ $t('loginTitle') }}</span>
         <span class="form-desc" v-else>{{ $t('regTitle') }}</span>
         <div v-show="show === 'login'">
+          <el-button v-if="companyLoginEnabled" class="btn" type="primary" style="margin-bottom: 16px" @click="companyLogin">使用公司账号登录</el-button>
           <el-input :class="!hideLoginDomain ? 'email-input' : ''" v-model="form.email"
                     type="text" :placeholder="$t('emailAccount')" autocomplete="off" @keyup.enter="submit">
             <template #append v-if="!hideLoginDomain">
@@ -154,7 +155,7 @@
 import router from "@/router";
 import {useRoute} from "vue-router";
 import {computed, nextTick, reactive, ref} from "vue";
-import {login} from "@/request/login.js";
+import {login, companyLoginConfiguration, exchangeCompanyLogin} from "@/request/login.js";
 import {register} from "@/request/login.js";
 import {websiteConfig} from "@/request/setting.js";
 import {isEmail} from "@/utils/verify-utils.js";
@@ -178,6 +179,7 @@ const route = useRoute();
 const loginLoading = ref(false)
 const bindLoading = ref(false)
 const oauthLoading = ref(false);
+const companyLoginEnabled = ref(false);
 const showBindForm = ref(false);
 const show = ref('login')
 
@@ -304,6 +306,30 @@ const loginFns = {
 }
 
 oauthGetUser();
+
+async function companyLogin() {
+  window.location.assign('/api/oauth/company/login')
+}
+
+async function loadCompanyLogin() {
+  try {
+    const config = await companyLoginConfiguration()
+    companyLoginEnabled.value = config.enabled
+    if (route.query.company_error) ElMessage.error('公司登录未完成，请重试或联系管理员')
+    if (route.query.company === '1') {
+      oauthLoading.value = true
+      window.history.replaceState({}, '', '/login')
+      const data = await exchangeCompanyLogin()
+      await saveToken(data.token)
+    }
+  } catch (error) {
+    console.error('Company mailbox login failed', error)
+    ElMessage.error('公司登录暂不可用，请重试或联系管理员')
+  } finally {
+    oauthLoading.value = false
+  }
+}
+loadCompanyLogin();
 
 async function oauthGetUser() {
 

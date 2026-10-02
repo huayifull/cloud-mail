@@ -44,6 +44,9 @@ admin = "${ADMIN}"
 jwt_secret = "${JWT_SECRET}"
 project_link = "${PROJECT_LINK}"
 identity_mail_domain = "${IDENTITY_MAIL_DOMAIN}"
+OIDC_ISSUER_URL = "${OIDC_ISSUER_URL}"
+OIDC_CLIENT_ID = "${OIDC_CLIENT_ID}"
+OIDC_REDIRECT_URI = "${OIDC_REDIRECT_URI}"
 
 [build]
 command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"

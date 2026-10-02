@@ -30,6 +30,10 @@ jobs:
       ANALYSIS_CACHE: ${{ secrets.ANALYSIS_CACHE || vars.ANALYSIS_CACHE || false }}
       IDENTITY_MAIL_DOMAIN: ${{ vars.IDENTITY_MAIL_DOMAIN || '' }}
       IDENTITY_SYNC_SECRET: ${{ secrets.IDENTITY_SYNC_SECRET || '' }}
+      OIDC_ISSUER_URL: ${{ vars.OIDC_ISSUER_URL || '' }}
+      OIDC_CLIENT_ID: ${{ vars.OIDC_CLIENT_ID || '' }}
+      OIDC_REDIRECT_URI: ${{ vars.OIDC_REDIRECT_URI || '' }}
+      OIDC_CLIENT_SECRET: ${{ secrets.OIDC_CLIENT_SECRET || '' }}
 
 
     outputs:
@@ -133,6 +137,9 @@ jobs:
           sed -i "s|\${ANALYSIS_CACHE}|${ANALYSIS_CACHE}|g" "$CONFIG_FILE"
           sed -i "s|\${AI_MODEL}|${AI_MODEL}|g" "$CONFIG_FILE"
           sed -i "s|\${IDENTITY_MAIL_DOMAIN}|${IDENTITY_MAIL_DOMAIN}|g" "$CONFIG_FILE"
+          sed -i "s|\${OIDC_ISSUER_URL}|${OIDC_ISSUER_URL}|g" "$CONFIG_FILE"
+          sed -i "s|\${OIDC_CLIENT_ID}|${OIDC_CLIENT_ID}|g" "$CONFIG_FILE"
+          sed -i "s|\${OIDC_REDIRECT_URI}|${OIDC_REDIRECT_URI}|g" "$CONFIG_FILE"
           sed -i "s|\${LINUXDO_CLIENT_ID}|${LINUXDO_CLIENT_ID}|g" "$CONFIG_FILE"
           sed -i "s|\${LINUXDO_CLIENT_SECRET}|${LINUXDO_CLIENT_SECRET}|g" "$CONFIG_FILE"
           sed -i "s|\${LINUXDO_CALLBACK_URL}|${LINUXDO_CALLBACK_URL}|g" "$CONFIG_FILE"
@@ -248,6 +255,11 @@ jobs:
             exit 1
           fi
           printf '%s' "$IDENTITY_SYNC_SECRET" | pnpm wrangler secret put IDENTITY_SYNC_SECRET -c wrangler-action.toml
+          if [ -z "$OIDC_CLIENT_SECRET" ]; then
+            echo "❌ OIDC_CLIENT_SECRET is required."
+            exit 1
+          fi
+          printf '%s' "$OIDC_CLIENT_SECRET" | pnpm wrangler secret put OIDC_CLIENT_SECRET -c wrangler-action.toml
 
       - name: ♻️ 初始化数据库 / Initialize database
         run: |
