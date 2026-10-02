@@ -284,6 +284,38 @@ jobs:
             exit 1
           fi
 
+      - name: 🔑 检查公司登录 / Check company login
+        if: env.OIDC_ISSUER_URL != ''
+        working-directory: ./mail-worker
+        run: |
+          timeout 20s pnpm wrangler tail "$NAME" -c wrangler-action.toml --format json > company-login.log 2>&1 &
+          TAIL_PID=$!
+          sleep 5
+          HTTP_CODE=$(curl -sS -w '%{http_code}' -o company-login-response.json "https://$CUSTOM_DOMAIN/api/oauth/company/login")
+          wait "$TAIL_PID" || true
+          if [ "$HTTP_CODE" != '302' ]; then
+            python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = Path('company-login.log').read_text()
+          decoder = json.JSONDecoder()
+          for i, char in enumerate(data):
+              if char != '{':
+                  continue
+              try:
+                  event, _ = decoder.raw_decode(data[i:])
+              except ValueError:
+                  continue
+              for log in event.get('logs', []) if isinstance(event, dict) else []:
+                  message = log.get('message', [])
+                  if message and message[0] == 'Company identity provider request failed':
+                      print(json.dumps(message, ensure_ascii=False))
+          PY
+            echo "❌ Company login returned HTTP $HTTP_CODE."
+            exit 1
+          fi
+          echo '✅ Company login redirects to the identity provider.'
+
       - name: 🗑️ 删除运行记录 / Delete workflow runs
         uses: GitRML/delete-workflow-runs@main
         continue-on-error: true

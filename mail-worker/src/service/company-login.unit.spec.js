@@ -20,6 +20,7 @@ describe('company mailbox login', () => {
     userService.selectByIdIncludeDel.mockResolvedValue({ userId: 7, email: 'existing-mailbox@example.test' });
     loginService.login.mockResolvedValue('existing-login-token');
     vi.stubGlobal('fetch', vi.fn(async (url, init) => {
+      if (mode === 'upstream') return new Response('Identity service unavailable', { status: 525, headers: { 'cf-ray': 'test-ray' } });
       if (url.endsWith('/.well-known/openid-configuration')) return Response.json({ issuer: 'https://identity.test', authorization_endpoint: 'https://identity.test/auth', token_endpoint: 'https://identity.test/token', jwks_uri: 'https://identity.test/jwks' });
       if (url.endsWith('/jwks')) return Response.json({ keys: [publicKey] });
       form = new URLSearchParams(init.body);
@@ -45,6 +46,15 @@ describe('company mailbox login', () => {
   it('rejects a browser state mismatch', async () => {
     const { query } = await flow();
     await expect(completeCompanyLogin(c, query, 'wrong')).rejects.toMatchObject({ code: 401 });
+  });
+  it('records the provider status without logging credentials', async () => {
+    mode = 'upstream';
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(beginCompanyLogin(c)).rejects.toMatchObject({ code: 503 });
+    expect(log).toHaveBeenCalledWith('Company identity provider request failed', {
+      endpoint: 'https://identity.test/.well-known/openid-configuration', status: 525, ray: 'test-ray',
+    });
+    log.mockRestore();
   });
   it.each(['nonce', 'audience', 'unknown', 'disabled'])('rejects %s', async badMode => {
     mode = badMode;

@@ -14,7 +14,14 @@ export function randomTicket() {
 
 async function providerJson(url, init) {
   const response = await fetch(url, { ...init, signal: AbortSignal.timeout(10000) });
-  if (!response.ok) throw new BizError('公司身份服务未完成认证，请重试', response.status < 500 ? 401 : 503);
+  if (!response.ok) {
+    const endpoint = new URL(url);
+    console.error('Company identity provider request failed', {
+      endpoint: `${endpoint.origin}${endpoint.pathname}`, status: response.status,
+      ray: response.headers.get('cf-ray'),
+    });
+    throw new BizError('公司身份服务未完成认证，请重试', response.status < 500 ? 401 : 503);
+  }
   return response.json();
 }
 
