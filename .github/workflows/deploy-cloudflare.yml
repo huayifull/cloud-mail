@@ -28,6 +28,8 @@ jobs:
       AI_MODEL: ${{ secrets.AI_MODEL || vars.AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast' }}
       CLOUDFLARE_EMAIL: ${{ secrets.CF_EMAIL || vars.CF_EMAIL || false }}
       ANALYSIS_CACHE: ${{ secrets.ANALYSIS_CACHE || vars.ANALYSIS_CACHE || false }}
+      IDENTITY_MAIL_DOMAIN: ${{ vars.IDENTITY_MAIL_DOMAIN || '' }}
+      IDENTITY_SYNC_SECRET: ${{ secrets.IDENTITY_SYNC_SECRET || '' }}
 
 
     outputs:
@@ -53,6 +55,12 @@ jobs:
       - name: 📦 安装依赖 / Install dependencies
         run: pnpm install --frozen-lockfile
         working-directory: ./mail-worker
+
+      - name: 🧪 运行测试 / Run tests
+        working-directory: ./mail-worker
+        run: |
+          pnpm test:unit
+          pnpm test:integration
 
       - name: 📡 禁用 Wrangler 遥测 / Disable wrangler telemetry
         working-directory: ./mail-worker
@@ -124,6 +132,7 @@ jobs:
           sed -i "s|\${PROJECT_LINK}|${PROJECT_LINK}|g" "$CONFIG_FILE"
           sed -i "s|\${ANALYSIS_CACHE}|${ANALYSIS_CACHE}|g" "$CONFIG_FILE"
           sed -i "s|\${AI_MODEL}|${AI_MODEL}|g" "$CONFIG_FILE"
+          sed -i "s|\${IDENTITY_MAIL_DOMAIN}|${IDENTITY_MAIL_DOMAIN}|g" "$CONFIG_FILE"
           sed -i "s|\${LINUXDO_CLIENT_ID}|${LINUXDO_CLIENT_ID}|g" "$CONFIG_FILE"
           sed -i "s|\${LINUXDO_CLIENT_SECRET}|${LINUXDO_CLIENT_SECRET}|g" "$CONFIG_FILE"
           sed -i "s|\${LINUXDO_CALLBACK_URL}|${LINUXDO_CALLBACK_URL}|g" "$CONFIG_FILE"
@@ -230,6 +239,15 @@ jobs:
           
           echo "worker_url=$WORKER_URL" >> $GITHUB_OUTPUT
           echo "✅ Setup completed."
+
+      - name: 🔐 配置员工同步密钥 / Configure identity secret
+        working-directory: ./mail-worker
+        run: |
+          if [ -z "$IDENTITY_SYNC_SECRET" ]; then
+            echo "❌ IDENTITY_SYNC_SECRET is required."
+            exit 1
+          fi
+          printf '%s' "$IDENTITY_SYNC_SECRET" | pnpm wrangler secret put IDENTITY_SYNC_SECRET -c wrangler-action.toml
 
       - name: ♻️ 初始化数据库 / Initialize database
         run: |

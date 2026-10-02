@@ -32,8 +32,41 @@ const dbInit = {
 		await this.v3_1DB(c);
 		await this.v3_2DB(c);
 		await this.v3_3DB(c);
+		await this.v3_4DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
+	},
+
+	async v3_4DB(c) {
+		await c.env.db.batch([
+			c.env.db.prepare(`
+				CREATE TABLE IF NOT EXISTS identity_link (
+					employee_id TEXT NOT NULL UNIQUE,
+					feishu_user_id TEXT PRIMARY KEY,
+					keycloak_user_id TEXT,
+					user_id INTEGER,
+					mailbox_email TEXT,
+					status TEXT NOT NULL,
+					name TEXT NOT NULL DEFAULT '',
+					source_email TEXT,
+					last_event_id TEXT NOT NULL,
+					created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+				)
+			`),
+			c.env.db.prepare(`
+				CREATE TABLE IF NOT EXISTS identity_event (
+					event_id TEXT PRIMARY KEY,
+					event_type TEXT NOT NULL,
+					outcome TEXT NOT NULL,
+					result_json TEXT NOT NULL,
+					processed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+				)
+			`),
+			c.env.db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_identity_link_keycloak ON identity_link(keycloak_user_id)`),
+			c.env.db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_identity_link_mailbox ON identity_link(mailbox_email COLLATE NOCASE)`),
+			c.env.db.prepare(`CREATE INDEX IF NOT EXISTS idx_identity_link_status ON identity_link(status)`),
+		]);
 	},
 
 	async v3_3DB(c) {

@@ -29,6 +29,9 @@ importers:
       linkedom:
         specifier: ^0.18.10
         version: 0.18.12
+      pinyin-pro:
+        specifier: ^3.29.4
+        version: 3.29.4
       postal-mime:
         specifier: ^2.4.3
         version: 2.4.4
@@ -2142,6 +2145,9 @@ packages:
   picomatch@4.0.3:
     resolution: {integrity: sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==}
     engines: {node: '>=12'}
+
+  pinyin-pro@3.29.4:
+    resolution: {integrity: sha512-SPXpDT2cHEy+d26V1RXYMlVzXN42hotFAak1fzyWPi4o2dKXb61UqD4pzxDJHwk6gbv8vQ6EfErd+hYX0Qhzug==}
 
   postal-mime@2.4.4:
     resolution: {integrity: sha512-LDaFIsmGO+uNnPu28H52cubuHrovfewviU8Y8p+KgIKGVF871t/IQxzlO8QwhJMiG0ih2Lk2jTL3aGVoNz3NZQ==}
@@ -4627,6 +4633,8 @@ snapshots:
   picocolors@1.1.1: {}
 
   picomatch@4.0.3: {}
+
+  pinyin-pro@3.29.4: {}
 
   postal-mime@2.4.4: {}
 

@@ -34,6 +34,21 @@
 
 只需要一个域名，就可以创建多个不同的邮箱，类似各大邮箱平台，本项目支持署到 Cloudflare Workers ，降低服务器成本，搭建自己的邮箱服务
 
+## 企业员工同步
+
+华易丰盈部署支持由飞书员工身份同步服务自动创建、启用和停用邮箱。员工同步入口使用带时间戳的
+HMAC-SHA256 签名并按事件 ID 幂等处理；邮箱地址首次
+分配后保持稳定，离职时只禁用账户并撤销会话，不删除历史邮件。
+
+Cloudflare Worker 需要配置：
+
+- 普通变量：`identity_mail_domain`；
+- Secret：`IDENTITY_SYNC_SECRET`。
+
+身份同步调用 `POST /api/internal/identity-events`。系统会将飞书员工姓名转换为小写全拼并在
+`identity_mail_domain` 下分配邮箱，例如“张三”分配为 `zhangsan@huayimail.com`；发生重名时依次
+追加数字 `2`、`3`。邮箱首次分配后保持稳定，不随姓名变化自动修改。
+
 ## 项目展示
 
 - [在线演示](https://skymail.ink)<br>
