@@ -12,13 +12,16 @@ function request(signature) {
 beforeAll(async () => {
 	const response = await SELF.fetch('http://example.com/api/init/b7f29a1d-18e2-4d3b-941f-f6b2c97c02fd');
 	expect(await response.text()).toBe('success');
+	await env.db.prepare('INSERT INTO user(email,password,salt,type) VALUES (?,?,?,?)')
+		.bind('admin@example.com', 'test-only-hash', 'test-only-salt', 1).run();
 });
 it('rejects unsigned requests and safely replays concurrent provisioning', async () => {
 	expect((await SELF.fetch(request('0'.repeat(64)))).status).toBe(401);
 	const responses = await Promise.all([SELF.fetch(request()), SELF.fetch(request())]);
 	for (const response of responses) {
-		expect(response.status).toBe(200);
-		expect((await response.json()).data).toMatchObject({email:'shein.8245046553@huayimail.com',status:'READY'});
+		const result = await response.json();
+		expect(response.status, JSON.stringify(result)).toBe(200);
+		expect(result.data).toMatchObject({email:'shein.8245046553@huayimail.com',status:'READY'});
 	}
 	const rows = await env.db.prepare('SELECT a.account_id,a.user_id,u.email AS owner FROM account a JOIN user u ON a.user_id=u.user_id WHERE a.email=?')
 		.bind('shein.8245046553@huayimail.com').all();
