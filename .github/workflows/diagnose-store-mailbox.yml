@@ -1,0 +1,23 @@
+name: Diagnose store mailbox
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read delivery metadata
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ADMIN: ${{ secrets.ADMIN }}
+          MAILBOX_ADDRESS: 3996121255@huayimail.com
+        run: python3 scripts/diagnose-store-mailbox.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mailbox-diagnostics
+          path: mailbox-diagnostics.json
+          retention-days: 1
