@@ -21,10 +21,10 @@ it('rejects unsigned requests and safely replays concurrent provisioning', async
 	for (const response of responses) {
 		const result = await response.json();
 		expect(response.status, JSON.stringify(result)).toBe(200);
-		expect(result.data).toMatchObject({email:'shein.8245046553@huayimail.com',status:'READY'});
+		expect(result.data).toMatchObject({email:'8245046553@huayimail.com',status:'READY'});
 	}
 	const rows = await env.db.prepare('SELECT a.account_id,a.user_id,u.email AS owner FROM account a JOIN user u ON a.user_id=u.user_id WHERE a.email=?')
-		.bind('shein.8245046553@huayimail.com').all();
+		.bind('8245046553@huayimail.com').all();
 	expect(rows.results).toHaveLength(1);
 	expect(rows.results[0].owner).toBe('admin@example.com');
 });

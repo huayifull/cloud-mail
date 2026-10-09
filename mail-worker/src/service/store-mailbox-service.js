@@ -8,7 +8,7 @@ export function storeMailboxInput(input, domains) {
 	if (!Array.isArray(domains) || !domains.includes('huayimail.com')) {
 		throw new BizError('店铺邮箱域名未配置', 503);
 	}
-	return { email: `shein.${input.store_id}@huayimail.com`, name: input.name.trim() };
+	return { email: `${input.store_id}@huayimail.com`, name: input.name.trim() };
 }
 
 export async function provisionStoreMailbox(c, input) {

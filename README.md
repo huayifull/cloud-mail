@@ -52,7 +52,7 @@ Cloudflare Worker 需要配置：
 ## 店铺邮箱自动开通
 
 OpsPilot 通过 `POST /api/internal/store-mailboxes` 提交 `store_id`（SHEIN 数字店铺 ID）和 `name`。
-接口按 `shein.<store_id>@huayimail.com` 创建管理员名下的收件箱，重复请求返回原邮箱；
+接口按 `<store_id>@huayimail.com` 创建管理员名下的收件箱，重复请求返回原邮箱；
 已有邮箱归属不同或已停用时返回冲突，不覆盖。店铺邮箱沿用管理员管理入口，不创建独立登录密码。
 Worker 配置独立 Secret `STORE_MAILBOX_SECRET`。请求头 `X-Store-Timestamp` 为 Unix 秒，
 `X-Store-Signature` 为该密钥对 `timestamp.body` 的 HMAC-SHA256 小写十六进制摘要，五分钟内有效。

@@ -24,7 +24,7 @@ def main():
     items = json.loads(os.environ['MAILBOXES_JSON'])
     assert isinstance(items, list) and 0 < len(items) <= 100
     for item in items:
-        assert re.fullmatch(r'shein\.[0-9]+@huayimail\.com', item['email'])
+        assert re.fullmatch(r'[0-9]+@huayimail\.com', item['email'])
         assert isinstance(item['name'], str) and 0 < len(item['name']) <= 100
     assert len({i['email'] for i in items}) == len(items)
     account = os.environ['CLOUDFLARE_ACCOUNT_ID']

@@ -1,0 +1,25 @@
+name: Rename store mailboxes
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: provision-store-mailboxes
+  cancel-in-progress: false
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rename managed inboxes
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ADMIN: ${{ secrets.ADMIN }}
+        run: python3 scripts/rename-store-mailboxes.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mailbox-rename-result
+          path: mailbox-rename-result.json
+          retention-days: 7
