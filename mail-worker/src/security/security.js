@@ -19,7 +19,8 @@ const exclude = [
 	'/telegram',
 	'/test',
 	'/oauth',
-	'/internal/identity-events'
+	'/internal/identity-events',
+	'/internal/store-mailboxes'
 ];
 
 const requirePerms = [

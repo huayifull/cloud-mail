@@ -22,4 +22,5 @@ import '../api/public-api'
 import '../api/telegram-api'
 import '../api/oauth-api'
 import '../api/internal-identity-api'
+import '../api/internal-store-mailbox-api'
 export default app;

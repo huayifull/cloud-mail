@@ -30,6 +30,7 @@ jobs:
       ANALYSIS_CACHE: ${{ secrets.ANALYSIS_CACHE || vars.ANALYSIS_CACHE || false }}
       IDENTITY_MAIL_DOMAIN: ${{ vars.IDENTITY_MAIL_DOMAIN || '' }}
       IDENTITY_SYNC_SECRET: ${{ secrets.IDENTITY_SYNC_SECRET || '' }}
+      STORE_MAILBOX_SECRET: ${{ secrets.STORE_MAILBOX_SECRET || '' }}
       OIDC_ISSUER_URL: ${{ vars.OIDC_ISSUER_URL || '' }}
       OIDC_CLIENT_ID: ${{ vars.OIDC_CLIENT_ID || '' }}
       OIDC_REDIRECT_URI: ${{ vars.OIDC_REDIRECT_URI || '' }}
@@ -255,6 +256,9 @@ jobs:
             exit 1
           fi
           printf '%s' "$IDENTITY_SYNC_SECRET" | pnpm wrangler secret put IDENTITY_SYNC_SECRET -c wrangler-action.toml
+          if [ -n "$STORE_MAILBOX_SECRET" ]; then
+            printf '%s' "$STORE_MAILBOX_SECRET" | pnpm wrangler secret put STORE_MAILBOX_SECRET -c wrangler-action.toml
+          fi
           if [ -z "$OIDC_CLIENT_SECRET" ]; then
             echo "❌ OIDC_CLIENT_SECRET is required."
             exit 1
