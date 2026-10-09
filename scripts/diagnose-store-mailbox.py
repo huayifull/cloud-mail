@@ -17,7 +17,7 @@ def query(sql, params=None):
     return result[0]['results']
 report = {}
 report['account'] = query('SELECT a.account_id,a.email,a.name,a.status,a.is_del,a.latest_email_time,a.user_id,u.status AS owner_status,u.is_del AS owner_deleted,(u.email=?) AS is_admin FROM account a JOIN user u ON u.user_id=a.user_id WHERE a.email=? COLLATE NOCASE', [os.environ['ADMIN'],address])
-report['messages'] = query('SELECT email_id,account_id,user_id,to_email,status,is_del,unread,create_time FROM email WHERE to_email=? COLLATE NOCASE OR account_id IN (SELECT account_id FROM account WHERE email=? COLLATE NOCASE) ORDER BY email_id DESC LIMIT 10',[address,address])
+report['messages'] = query('SELECT email_id,account_id,user_id,to_email,send_email,subject,substr(text,1,120) AS preview,status,is_del,unread,create_time FROM email WHERE to_email=? COLLATE NOCASE OR account_id IN (SELECT account_id FROM account WHERE email=? COLLATE NOCASE) ORDER BY email_id DESC LIMIT 10',[address,address])
 report['settings'] = query('SELECT receive,no_recipient FROM setting LIMIT 1')
 report['test_matches'] = query("SELECT email_id,create_time,status,is_del FROM email WHERE to_email=? AND send_email=? AND coalesce(subject,'')='' AND trim(text)=? ORDER BY email_id DESC LIMIT 10", [address,'2272346895@qq.com','hi'])
 try:
