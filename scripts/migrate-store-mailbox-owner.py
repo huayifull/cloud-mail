@@ -137,7 +137,8 @@ def main():
         timestamp = str(int(time.time()))
         signature = hmac.new(os.environ['STORE_MAILBOX_SECRET'].encode(), timestamp.encode() + b'.' + body, hashlib.sha256).hexdigest()
         request = urllib.request.Request('https://mail.huayimail.com/api/internal/store-mailboxes', data=body,
-            headers={'Content-Type': 'application/json', 'X-Store-Timestamp': timestamp, 'X-Store-Signature': signature})
+            headers={'Content-Type': 'application/json', 'X-Store-Timestamp': timestamp, 'X-Store-Signature': signature,
+                     'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(request, timeout=30) as response:
             result = json.load(response)
         assert result['data']['account_id'] == mailbox['account_id'] and result['data']['email'] == mailbox['email']
