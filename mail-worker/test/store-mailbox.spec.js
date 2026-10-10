@@ -14,6 +14,8 @@ beforeAll(async () => {
 	expect(await response.text()).toBe('success');
 	await env.db.prepare('INSERT INTO user(email,password,salt,type) VALUES (?,?,?,?)')
 		.bind('admin@example.com', 'test-only-hash', 'test-only-salt', 1).run();
+	await env.db.prepare('INSERT INTO user(email,password,salt,type) VALUES (?,?,?,?)')
+		.bind('shein@huayimail.com', 'test-only-hash', 'test-only-salt', 1).run();
 });
 it('rejects unsigned requests and safely replays concurrent provisioning', async () => {
 	expect((await SELF.fetch(request('0'.repeat(64)))).status).toBe(401);
@@ -26,5 +28,5 @@ it('rejects unsigned requests and safely replays concurrent provisioning', async
 	const rows = await env.db.prepare('SELECT a.account_id,a.user_id,u.email AS owner FROM account a JOIN user u ON a.user_id=u.user_id WHERE a.email=?')
 		.bind('8245046553@huayimail.com').all();
 	expect(rows.results).toHaveLength(1);
-	expect(rows.results[0].owner).toBe('admin@example.com');
+	expect(rows.results[0].owner).toBe('shein@huayimail.com');
 });

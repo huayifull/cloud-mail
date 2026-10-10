@@ -13,9 +13,13 @@ export function storeMailboxInput(input, domains) {
 
 export async function provisionStoreMailbox(c, input) {
 	const { email, name } = storeMailboxInput(input, c.env.domain);
+	const ownerEmail = (c.env.store_mailbox_owner || 'shein@huayimail.com').trim().toLowerCase();
+	if (ownerEmail === c.env.admin?.trim().toLowerCase()) {
+		throw new BizError('店铺邮箱必须归属专用用户', 503);
+	}
 	const owner = await c.env.db.prepare('SELECT user_id,status,is_del FROM user WHERE email=? COLLATE NOCASE')
-		.bind(c.env.admin).first();
-	if (!owner || owner.status !== 0 || owner.is_del !== 0) throw new BizError('邮箱管理员不可用', 503);
+		.bind(ownerEmail).first();
+	if (!owner || owner.status !== 0 || owner.is_del !== 0) throw new BizError('店铺邮箱专用用户不可用', 503);
 	const settings = await c.env.db.prepare('SELECT receive FROM setting LIMIT 1').first();
 	if (!settings || settings.receive !== 0) throw new BizError('邮箱收件服务已关闭', 503);
 	// Unique email index plus conditional insert makes concurrent retries safe.

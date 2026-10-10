@@ -1,4 +1,4 @@
-"""Provision explicitly supplied store inboxes under the existing administrator."""
+"""Provision explicitly supplied SHEIN inboxes under their dedicated user."""
 import json
 import os
 import re
@@ -36,7 +36,8 @@ def main():
     if isinstance(domains, str):
         domains = json.loads(domains)
     assert 'huayimail.com' in domains
-    admin = os.environ['ADMIN']
+    owner_email = os.environ.get('STORE_MAILBOX_OWNER') or 'shein@huayimail.com'
+    assert owner_email.lower() != os.environ['ADMIN'].lower(), 'Store owner must be a dedicated user'
 
     def query(sql, params=None):
         result = api(f'accounts/{account}/d1/database/{database}/query',
@@ -44,7 +45,7 @@ def main():
         assert all(r.get('success') for r in result), 'D1 query failed'
         return result[0]['results']
 
-    users = query('SELECT user_id,status,is_del FROM user WHERE email=? COLLATE NOCASE', [admin])
+    users = query('SELECT user_id,status,is_del FROM user WHERE email=? COLLATE NOCASE', [owner_email])
     assert len(users) == 1 and users[0]['status'] == 0 and users[0]['is_del'] == 0
     owner = users[0]['user_id']
     settings = query('SELECT receive FROM setting LIMIT 1')
@@ -68,7 +69,7 @@ def main():
     if apply:
         assert len(verified) == len(items)
         assert all(r['user_id'] == owner and r['status'] == 0 and r['is_del'] == 0 for r in verified)
-    report = {'applied': apply, 'requested': len(items), 'existing': len(existing),
+    report = {'applied': apply, 'owner': owner_email, 'requested': len(items), 'existing': len(existing),
               'verified': len(verified), 'receiving_enabled': True,
               'mailboxes': [{'email': r['email'], 'name': r['name'], 'account_id': r['account_id']}
                             for r in verified]}

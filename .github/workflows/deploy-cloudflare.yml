@@ -31,6 +31,7 @@ jobs:
       IDENTITY_MAIL_DOMAIN: ${{ vars.IDENTITY_MAIL_DOMAIN || '' }}
       IDENTITY_SYNC_SECRET: ${{ secrets.IDENTITY_SYNC_SECRET || '' }}
       STORE_MAILBOX_SECRET: ${{ secrets.STORE_MAILBOX_SECRET || '' }}
+      STORE_MAILBOX_OWNER: ${{ vars.STORE_MAILBOX_OWNER || 'shein@huayimail.com' }}
       OIDC_ISSUER_URL: ${{ vars.OIDC_ISSUER_URL || '' }}
       OIDC_CLIENT_ID: ${{ vars.OIDC_CLIENT_ID || '' }}
       OIDC_REDIRECT_URI: ${{ vars.OIDC_REDIRECT_URI || '' }}
@@ -132,6 +133,7 @@ jobs:
           sed -i "s|\${CUSTOM_DOMAIN}|${CUSTOM_DOMAIN}|g" "$CONFIG_FILE"
           sed -i "s|\"\${DOMAIN}\"|${DOMAIN}|g" "$CONFIG_FILE"
           sed -i "s|\${ADMIN}|${ADMIN}|g" "$CONFIG_FILE"
+          sed -i "s|\${STORE_MAILBOX_OWNER}|${STORE_MAILBOX_OWNER}|g" "$CONFIG_FILE"
           sed -i "s|\${JWT_SECRET}|${JWT_SECRET}|g" "$CONFIG_FILE"
           sed -i "s|\${R2_BUCKET_NAME}|${R2_BUCKET_NAME}|g" "$CONFIG_FILE"
           sed -i "s|\${PROJECT_LINK}|${PROJECT_LINK}|g" "$CONFIG_FILE"

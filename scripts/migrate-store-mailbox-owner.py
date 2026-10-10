@@ -1,11 +1,14 @@
 """Move an explicit SHEIN inbox manifest and its messages to a dedicated user."""
 import base64
 import hashlib
+import hmac
 import json
 import os
 import re
 import runpy
 import secrets
+import time
+import urllib.request
 from pathlib import Path
 
 
@@ -128,6 +131,18 @@ def main():
         assert [r for r in unrelated if r['email'].lower() != owner_email] == after_unrelated
         report['verified'] = len(verified)
         report['unrelated_inboxes_unchanged'] = True
+    if os.environ.get('VERIFY_PROVISION') == 'true':
+        mailbox = verified[0]
+        body = json.dumps({'store_id': mailbox['email'].split('@')[0], 'name': mailbox['name']}).encode()
+        timestamp = str(int(time.time()))
+        signature = hmac.new(os.environ['STORE_MAILBOX_SECRET'].encode(), timestamp.encode() + b'.' + body, hashlib.sha256).hexdigest()
+        request = urllib.request.Request('https://mail.huayimail.com/api/internal/store-mailboxes', data=body,
+            headers={'Content-Type': 'application/json', 'X-Store-Timestamp': timestamp, 'X-Store-Signature': signature})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.load(response)
+        assert result['data']['account_id'] == mailbox['account_id'] and result['data']['email'] == mailbox['email']
+        assert result['data']['status'] == 'READY'
+        report['automatic_provisioning_owner_verified'] = True
     Path('mailbox-owner-migration-result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps({k: v for k, v in report.items() if k != 'mailboxes'}, ensure_ascii=False))
 

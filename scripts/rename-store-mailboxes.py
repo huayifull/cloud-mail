@@ -18,7 +18,9 @@ def query(sql, params=None):
     return result[0]['results']
 
 
-owners = query('SELECT user_id FROM user WHERE email=? COLLATE NOCASE AND status=0 AND is_del=0', [os.environ['ADMIN']])
+owner_email = os.environ.get('STORE_MAILBOX_OWNER') or 'shein@huayimail.com'
+assert owner_email.lower() != os.environ['ADMIN'].lower(), 'Store owner must be a dedicated user'
+owners = query('SELECT user_id FROM user WHERE email=? COLLATE NOCASE AND status=0 AND is_del=0', [owner_email])
 assert len(owners) == 1
 owner = owners[0]['user_id']
 rows = query('SELECT account_id,email,user_id FROM account WHERE email LIKE ?', ['shein.%@huayimail.com'])

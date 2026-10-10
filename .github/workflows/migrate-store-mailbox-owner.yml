@@ -11,6 +11,11 @@ on:
         required: true
         default: false
         type: boolean
+      verify_provision:
+        description: 'Replay an existing inbox through the deployed signed API'
+        required: false
+        default: false
+        type: boolean
 permissions:
   contents: read
 concurrency:
@@ -29,8 +34,10 @@ jobs:
           ADMIN: ${{ secrets.ADMIN }}
           STORE_MAILBOX_OWNER: ${{ vars.STORE_MAILBOX_OWNER || 'shein@huayimail.com' }}
           SHEIN_MAILBOX_PASSWORD: ${{ secrets.SHEIN_MAILBOX_PASSWORD }}
+          STORE_MAILBOX_SECRET: ${{ secrets.STORE_MAILBOX_SECRET }}
           MAILBOXES_JSON: ${{ inputs.mailboxes_json }}
           APPLY: ${{ inputs.apply }}
+          VERIFY_PROVISION: ${{ inputs.verify_provision }}
         run: python3 scripts/migrate-store-mailbox-owner.py
       - uses: actions/upload-artifact@v4
         with:

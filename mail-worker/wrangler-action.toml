@@ -41,6 +41,7 @@ analysis_cache = "${ANALYSIS_CACHE}"
 #orm_log = false
 domain = "${DOMAIN}"
 admin = "${ADMIN}"
+store_mailbox_owner = "${STORE_MAILBOX_OWNER}"
 jwt_secret = "${JWT_SECRET}"
 project_link = "${PROJECT_LINK}"
 identity_mail_domain = "${IDENTITY_MAIL_DOMAIN}"
