@@ -1,0 +1,39 @@
+name: Migrate SHEIN mailbox owner
+on:
+  workflow_dispatch:
+    inputs:
+      mailboxes_json:
+        description: 'Explicit array of existing SHEIN account_id and email pairs'
+        required: true
+        type: string
+      apply:
+        description: 'Create dedicated user and transfer inboxes and history'
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: provision-store-mailboxes
+  cancel-in-progress: false
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and migrate mailbox ownership
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ADMIN: ${{ secrets.ADMIN }}
+          STORE_MAILBOX_OWNER: ${{ vars.STORE_MAILBOX_OWNER || 'shein@huayimail.com' }}
+          SHEIN_MAILBOX_PASSWORD: ${{ secrets.SHEIN_MAILBOX_PASSWORD }}
+          MAILBOXES_JSON: ${{ inputs.mailboxes_json }}
+          APPLY: ${{ inputs.apply }}
+        run: python3 scripts/migrate-store-mailbox-owner.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mailbox-owner-migration-result
+          path: mailbox-owner-migration-result.json
+          retention-days: 7
