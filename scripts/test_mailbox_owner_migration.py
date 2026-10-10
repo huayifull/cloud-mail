@@ -15,7 +15,7 @@ class MailboxOwnerMigrationTest(unittest.TestCase):
             CREATE TABLE role(role_id INTEGER PRIMARY KEY,name TEXT,key TEXT,description TEXT,user_id INTEGER,
                 is_default INTEGER,send_type TEXT,account_count INTEGER,avail_domain TEXT);
             CREATE TABLE perm(perm_id INTEGER PRIMARY KEY);
-            INSERT INTO perm VALUES (1),(2),(4),(21),(22),(7),(28);
+            INSERT INTO perm VALUES (1),(2),(4),(21),(22),(23),(7),(28);
             CREATE TABLE role_perm(role_id INTEGER,perm_id INTEGER);
             CREATE TABLE user(user_id INTEGER PRIMARY KEY,email TEXT UNIQUE,password TEXT,salt TEXT,type INTEGER,
                 status INTEGER DEFAULT 0,is_del INTEGER DEFAULT 0);
@@ -56,7 +56,7 @@ class MailboxOwnerMigrationTest(unittest.TestCase):
         self.assertEqual(self.db.execute('SELECT user_id,content FROM email WHERE email_id=3').fetchone(), (1, 'unrelated'))
         self.assertEqual(self.db.execute('SELECT user_id FROM account WHERE account_id IN (1,59)').fetchall(), [(1,), (1,)])
         self.assertEqual(self.db.execute('SELECT password,salt FROM user WHERE user_id=1').fetchone(), ('original-hash', 'original-salt'))
-        self.assertEqual(self.db.execute('SELECT perm_id FROM role_perm ORDER BY perm_id').fetchall(), [(1,), (2,), (4,), (21,), (22,)])
+        self.assertEqual(self.db.execute('SELECT perm_id FROM role_perm ORDER BY perm_id').fetchall(), [(1,), (2,), (4,), (21,), (22,), (23,)])
         # A retry must preserve the existing password, IDs and all messages.
         self.batch(migration_statements(self.items, 1, 'shein@huayimail.com', 'a-different-password-123'))
         self.assertEqual(self.db.execute("SELECT password FROM user WHERE email='shein@huayimail.com'").fetchone(), (stored_hash,))

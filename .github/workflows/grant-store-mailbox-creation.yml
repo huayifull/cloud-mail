@@ -1,0 +1,24 @@
+name: Grant SHEIN mailbox creation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: provision-store-mailboxes
+  cancel-in-progress: false
+jobs:
+  grant:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Grant dedicated role mailbox creation
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: python3 scripts/grant-store-mailbox-creation.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mailbox-creation-permission-result
+          path: mailbox-creation-permission-result.json
+          retention-days: 7

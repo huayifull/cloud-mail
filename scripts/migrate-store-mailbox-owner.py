@@ -14,7 +14,7 @@ from pathlib import Path
 
 OWNER = 'shein@huayimail.com'
 ROLE_KEY = 'shein-mailbox'
-PERM_IDS = [1, 2, 4, 21, 22]
+PERM_IDS = [1, 2, 4, 21, 22, 23]
 
 
 def migration_statements(items, source, owner_email, password):
