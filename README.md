@@ -62,6 +62,11 @@ Worker 配置独立 Secret `STORE_MAILBOX_SECRET`。请求头 `X-Store-Timestamp
 
 ## 项目展示
 
+收件箱左侧的邮箱列表支持按邮箱地址、店铺 ID 或名称进行包含匹配搜索。
+输入后自动筛选，按回车可立即查询，清空搜索恢复完整列表；点击结果切换收件箱。
+查询覆盖当前用户名下所有未删除的邮箱，保留置顶排序和每页 30 条的滚动加载。
+`GET /api/account/list` 支持可选参数 `keyword`，与 `accountId`、`lastSort` 分页参数配合使用。
+
 - [在线演示](https://skymail.ink)<br>
 - [部署文档](https://doc.skymail.ink)<br>
 

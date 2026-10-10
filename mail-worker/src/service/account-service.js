@@ -113,36 +113,41 @@ const accountService = {
 
 	list(c, params, userId) {
 
-		let { accountId, size, lastSort } = params;
+		let { accountId, size, lastSort, keyword = '' } = params;
 
 		accountId = Number(accountId);
-		size = Number(size);
-		lastSort = Number(lastSort);
-
-		if (size > 30) {
-			size = 30;
-		}
+		size = Math.min(30, Math.max(1, Math.floor(Number(size) || 30)));
+		lastSort = lastSort == null || lastSort === '' ? NaN : Number(lastSort);
 
 		if (!accountId) {
 			accountId = 0;
 		}
 
-		if(Number.isNaN(lastSort)) {
+		if(!Number.isFinite(lastSort)) {
 			lastSort = 9999999999;
 		}
+
+		keyword = keyword.trim();
+		// Escape LIKE wildcards so mailbox addresses and names are searched literally.
+		const pattern = `%${keyword.replace(/[\\%_]/g, '\\$&')}%`;
+		const matchesKeyword = keyword ? or(
+			sql`${account.email} COLLATE NOCASE LIKE ${pattern} ESCAPE '\\'`,
+			sql`${account.name} COLLATE NOCASE LIKE ${pattern} ESCAPE '\\'`
+		) : undefined;
 
 		return orm(c).select().from(account).where(
 			and(
 				eq(account.userId, userId),
 				eq(account.isDel, isDel.NORMAL),
-					or(
-						lt(account.sort, lastSort),
-						and(
-							eq(account.sort, lastSort),
-							gt(account.accountId, accountId)
-						)
-					))
+				matchesKeyword,
+				or(
+					lt(account.sort, lastSort),
+					and(
+						eq(account.sort, lastSort),
+						gt(account.accountId, accountId)
+					)
 				)
+			))
 			.orderBy(desc(account.sort), asc(account.accountId))
 			.limit(size)
 			.all();

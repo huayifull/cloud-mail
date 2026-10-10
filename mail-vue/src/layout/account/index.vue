@@ -3,13 +3,25 @@
     <div class="head-opt">
       <Icon v-perm="'account:add'" class="icon add" icon="ion:add-outline" width="23" height="23" @click="add"/>
       <Icon class="icon refresh" icon="ion:reload" width="18" height="18" @click="refresh"/>
+      <div class="account-search">
+        <el-input v-model="searchValue" clearable size="small" :placeholder="$t('searchMailboxPlaceholder')"
+                  :aria-label="$t('searchMailbox')" :title="$t('searchMailbox')" @keyup.enter="refresh">
+          <template #prefix>
+            <Icon icon="iconoir:search" width="14" height="14"/>
+          </template>
+        </el-input>
+      </div>
     </div>
     <el-scrollbar class="scrollbar" ref="scrollbarRef">
-      <div v-infinite-scroll="getAccountList" :infinite-scroll-distance="600" :infinite-scroll-immediate="false">
-        <el-card class="item" :class="itemBg(item.accountId)" v-for="(item, index) in accounts" :key="item.accountId"
+      <div v-infinite-scroll="getAccountList" :infinite-scroll-distance="600" :infinite-scroll-immediate="false"
+           :infinite-scroll-disabled="loading || followLoading || searchPending || noLoading || listError">
+        <el-card class="item" :class="itemBg(item.accountId)" v-for="item in accounts" :key="item.accountId"
                  @click="changeAccount(item)">
           <div class="account">
-            {{ item.email }}
+            <div class="account-email" :title="item.email">{{ item.email }}</div>
+            <div class="account-name" :title="item.name" v-if="item.name && item.name !== item.email.split('@')[0]">
+              {{ item.name }}
+            </div>
           </div>
           <div class="opt">
             <div class="send-email" @click.stop>
@@ -25,7 +37,7 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">{{ $t('rename') }}</el-dropdown-item>
-                    <el-dropdown-item v-if="item.accountId !== userStore.user.account.accountId" @click="setAsTop(item, index)">{{ $t('pin') }}</el-dropdown-item>
+                    <el-dropdown-item v-if="item.accountId !== userStore.user.account.accountId" @click="setAsTop(item)">{{ $t('pin') }}</el-dropdown-item>
                     <el-dropdown-item v-if="item.accountId !== userStore.user.account.accountId && hasPerm('account:delete')"
                                       @click="remove(item)">{{ $t('delete') }}
                     </el-dropdown-item>
@@ -37,7 +49,7 @@
         </el-card>
 
         <!-- Initial Loading Skeleton -->
-        <template v-if="loading">
+        <template v-if="loading || searchPending">
           <el-skeleton v-for="i in skeletonRows" :key="i" animated>
             <template #template>
               <el-card class="item">
@@ -52,7 +64,7 @@
         </template>
 
         <!-- Follow Loading Skeleton -->
-        <template v-if="accounts.length > 0 && !noLoading">
+        <template v-if="followLoading">
           <el-skeleton animated>
             <template #template>
               <el-card class="item">
@@ -70,7 +82,11 @@
           <div>{{ $t('noMoreData') }}</div>
         </div>
         <div class="empty" v-if="noLoading && accounts.length === 0">
-          <el-empty :description="$t('noMessagesFound')"/>
+          <el-empty :description="$t('noMailboxesFound')"/>
+        </div>
+        <div class="load-error" v-if="listError">
+          <span>{{ $t('mailboxLoadFailed') }}</span>
+          <el-button link type="primary" @click="getAccountList">{{ $t('retry') }}</el-button>
         </div>
       </div>
 
@@ -127,7 +143,7 @@
 </template>
 <script setup>
 import {Icon} from "@iconify/vue";
-import {computed, nextTick, reactive, ref, watch} from "vue";
+import {computed, nextTick, onBeforeUnmount, reactive, ref, watch} from "vue";
 import {
   accountList,
   accountAdd,
@@ -155,6 +171,11 @@ const showAdd = ref(false)
 const addLoading = ref(false);
 const domainList = computed(() => settingStore.domainList)
 const accounts = reactive([])
+const searchValue = ref('')
+const searchPending = ref(false)
+const listError = ref(false)
+let searchTimer = null
+let listVersion = 0
 const noLoading = ref(false)
 const loading = ref(false)
 const followLoading = ref(false);
@@ -169,7 +190,6 @@ let turnstileId = null
 const botJsError = ref(false)
 let verifyToken = ''
 let verifyErrorCount = 0
-let first = true
 const addForm = reactive({
   email: '',
   suffix: settingStore.domainList[0]
@@ -186,7 +206,16 @@ if (hasPerm('account:query')) {
 }
 
 watch(() => accountStore.changeUserAccountName, () => {
-  accounts[0].name = accountStore.changeUserAccountName
+  const mainAccount = accounts.find(item => item.accountId === userStore.user.account.accountId)
+  if (mainAccount) mainAccount.name = accountStore.changeUserAccountName
+  if (searchValue.value.trim()) refresh()
+})
+
+watch(() => searchValue.value.trim(), () => resetList(300), {flush: 'sync'})
+
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer)
+  listVersion++
 })
 
 watch(() => settingStore.domainList, (list) => {
@@ -255,6 +284,7 @@ function setName() {
     if (account.accountId === userStore.user.account.accountId) {
       userStore.user.name = name
     }
+    if (searchValue.value.trim()) refresh()
 
     ElMessage({
       message: t('saveSuccessMsg'),
@@ -311,11 +341,8 @@ function remove(account) {
     type: 'warning'
   }).then(() => {
     accountDelete(account.accountId).then(() => {
-      const index = accounts.findIndex(item => item.accountId === account.accountId);
-      accounts.splice(index, 1);
-      if (accounts.length < queryParams.size) {
-        getAccountList()
-      }
+      if (accountStore.currentAccountId === account.accountId) changeAccount(userStore.user.account)
+      refresh()
       ElMessage({
         message: t('delSuccessMsg'),
         type: 'success',
@@ -326,18 +353,29 @@ function remove(account) {
 }
 
 function refresh() {
-  if (loading.value) {
-    return
-  }
+  resetList()
+}
+
+function resetList(delay = 0) {
+  clearTimeout(searchTimer)
+  // Every query owns a version; older requests cannot append to newer results.
+  listVersion++
   loading.value = false
   followLoading.value = false
   noLoading.value = false
-  queryParams.accountId = 0
-  queryParams.lastSort = null
+  listError.value = false
+  searchPending.value = delay > 0
   getSkeletonRows();
-  scrollbarRef.value.setScrollTop(0)
+  scrollbarRef.value?.setScrollTop?.(0)
   accounts.splice(0, accounts.length)
-  getAccountList()
+  if (delay) {
+    searchTimer = setTimeout(() => {
+      searchPending.value = false
+      getAccountList()
+    }, delay)
+  } else {
+    getAccountList()
+  }
 }
 
 function changeAccount(account) {
@@ -353,7 +391,7 @@ function add() {
   }, 100)
 }
 
-function setAsTop(account, index) {
+function setAsTop(account) {
   accountSetAsTop(account.accountId).then(() => {
     ElMessage({
       message: t('setSuccess'),
@@ -361,8 +399,7 @@ function setAsTop(account, index) {
       plain: true,
     })
 
-    const [item] = accounts.splice(index, 1);
-    accounts.splice(1, 0, item);
+    refresh()
 
   });
 }
@@ -385,9 +422,12 @@ async function copyAccount(account) {
   }
 }
 
-function getAccountList() {
+async function getAccountList() {
 
-  if (loading.value || followLoading.value || noLoading.value) return;
+  if (loading.value || followLoading.value || searchPending.value || noLoading.value) return;
+
+  const version = listVersion
+  listError.value = false
 
   if (accounts.length === 0) {
     loading.value = true
@@ -400,30 +440,31 @@ function getAccountList() {
   const accountId = accounts.length > 0 ? accounts.at(-1).accountId : 0;
   const lastSort = accounts.length > 0 ? accounts.at(-1).sort : null;
 
-  accountList(accountId, queryParams.size, lastSort).then(async list => {
+  try {
+    const list = await accountList(accountId, queryParams.size, lastSort, searchValue.value.trim())
 
     let end = Date.now();
     let duration = end - start;
     if (duration < 300) {
       await sleep(300 - duration)
     }
+    if (version !== listVersion) return
 
     if (list.length < queryParams.size) {
       noLoading.value = true
     }
-    if (accounts.length === 0) {
-      accountStore.currentAccount = list[0]
-    }
+    const selectedAccount = list.find(item => item.accountId === accountStore.currentAccountId)
+    if (selectedAccount) accountStore.currentAccount = selectedAccount
 
     accounts.push(...list)
-
-    loading.value = false
-    followLoading.value = false
-    first = false
-  }).catch(() => {
-    loading.value = false
-    followLoading.value = false
-  })
+  } catch {
+    if (version === listVersion) listError.value = true
+  } finally {
+    if (version === listVersion) {
+      loading.value = false
+      followLoading.value = false
+    }
+  }
 }
 
 
@@ -487,7 +528,7 @@ function submit() {
   accountAdd(addForm.email + addForm.suffix, verifyToken).then(account => {
     addLoading.value = false
     addForm.email = ''
-    accounts.push(account)
+    refresh()
     verifyToken = ''
     settingStore.settings.addVerifyOpen = account.addVerifyOpen
     ElMessage({
@@ -537,6 +578,7 @@ path[fill="#ffdda1"] {
 
     .icon {
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     .refresh {
@@ -576,6 +618,22 @@ path[fill="#ffdda1"] {
     }
   }
 
+  .account-search {
+    flex: 1;
+    min-width: 0;
+    margin-left: 10px;
+  }
+
+  .load-error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 15px 10px;
+    font-size: 13px;
+    color: var(--secondary-text-color);
+  }
+
   .btn {
     width: 100%;
     margin-top: 15px;
@@ -594,9 +652,17 @@ path[fill="#ffdda1"] {
       font-weight: 400;
       font-size: 15px;
       margin-bottom: 20px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+      .account-email, .account-name {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .account-name {
+        font-size: 12px;
+        margin-top: 4px;
+        color: var(--secondary-text-color);
+      }
     }
 
     .opt {
